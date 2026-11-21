@@ -6,26 +6,30 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CustomsTest {
-    private fun page() = javaClass.classLoader!!.getResource("search_ar.html").readText()
+    private fun page() = org.json.JSONObject(javaClass.classLoader!!.getResource("search_ar.json").readText()).getJSONArray("data")
 
     @Test fun parsesSavedSearch() {
-        val rows = Epa.parse(page())
+        val rows = Epa.parse(page(), english = false)
         assertEquals(12, rows.size)
         val r = rows[0]
         assertEquals("TIM/10001/KWI26", r.number)
         assertEquals("20/10/2026", r.date)
         assertEquals("500025", r.id)
         assertEquals("مطار الكويت الدولي", r.port)
-        assertEquals("5", r.cost)
-        assertEquals("https://customspayment.epa.gov.kw/Customs/Result.aspx?PaymentID=900000000000000013", r.receipt)
+        assertEquals("5.000", r.cost)
+        assertEquals("تمت الموافقة - السلامة الكيميائية -مبدئيًا", r.status)
+        assertEquals("مدفوع", r.payment)
+        assertEquals("https://customspayment.epa.gov.kw/Customs/Result/?PaymentID=900000000000000013", r.receipt)
+        assertEquals(null, rows[1].receipt)
         assertFalse(Store.isReleased(r.status))
         assertTrue(rows.drop(1).all { Store.isReleased(it.status) })
     }
 
-    @Test fun hiddenFields() {
-        val f = Epa.hidden(page())
-        assertTrue(f.getValue("__VIEWSTATE").length > 100)
-        assertEquals("2D2F4CD8", f["__VIEWSTATEGENERATOR"])
+    @Test fun formTokens() {
+        val html = """<form action="/CustomsDec/Home/Culture" method="post"><input name="__RequestVerificationToken" type="hidden" value="AAA" />
+            <form action="/CustomsDec/Declarations/Search" id="search-form" method="post"><input name="__RequestVerificationToken" type="hidden" value="B-b_1" />"""
+        assertEquals("AAA", Epa.token(html, "Home/Culture"))
+        assertEquals("B-b_1", Epa.token(html, "search-form"))
     }
 
     @Test fun translates() {
@@ -42,7 +46,7 @@ class CustomsTest {
     }
 
     @Test fun mergeArchivesReleased() {
-        val rows = Epa.parse(page())
+        val rows = Epa.parse(page(), english = false)
         val pending = rows[0]
         val (first, ch1) = Checker.merge(emptyList(), rows.map { it to "123456" }, emptyMap(), 1000)
         assertEquals(12, ch1.count { it.kind == Checker.Kind.NEW })

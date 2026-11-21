@@ -17,8 +17,8 @@ android {
         applicationId = "com.ironshing.customs"
         minSdk = 28
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = 3
+        versionName = "1.2"
     }
     if (signingProps.getProperty("KEYSTORE_FILE", "").isNotEmpty()) {
         signingConfigs {
@@ -49,5 +49,6 @@ dependencies {
     implementation(libs.compose.material3)
     implementation(libs.compose.material.icons)
     implementation(libs.activity.compose)
+    testImplementation("org.json:json:20240303")
     testImplementation(libs.junit)
 }
